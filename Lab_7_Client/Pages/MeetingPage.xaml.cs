@@ -17,11 +17,12 @@ namespace Lab_7_Client.Pages
     /// </summary>
     public partial class MeetingPage : Page
     {
+        private IMeetingContainer _meetingContainer;
         public WaveInEvent WaveIn { get; private set; }
         public VideoCaptureDevice VideoSource { get; private set; }
         public bool IsAudioRecording { get; private set; } = false;
 
-        public List<MeetingClientContainer> ClientsContainers { get; private set; }
+        public List<MeetingParticipantContainer> ParticipantsContainers { get; private set; }
 
         public MeetingPage()
         {
@@ -29,18 +30,20 @@ namespace Lab_7_Client.Pages
 
             MyTextBox.Text = $"Meeting ID: {Client.MeetingId}";
 
-            ClientsContainers = new List<MeetingClientContainer>();
+            ParticipantsContainers = new List<MeetingParticipantContainer>();
+
+            _meetingContainer = new ScreenShareMeetingContainer(ParticipantsContainers);
+
+            MeetingContainerBorder.Child = (UIElement)_meetingContainer;
 
             Client.ClientListUpdated += OnClientListUpdated;
 
             Client.AnotherCameraStarted += OnAnotherCameraStarted;
             Client.AnotherCameraUpdated += OnAnotherCameraUpdated;
-            Client.AnotherCameraClosed += OnAnotherCameraClosed;
+            Client.AnotherCameraStopped += OnAnotherCameraStopped;
 
             Client.AnotherAudioStarted += OnAnotherAudioStarted;
             Client.AnotherAudioStopped += OnAnotherAudioStopped;
-
-            OnClientListUpdated();
 
             // Camera
             var videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
@@ -56,88 +59,23 @@ namespace Lab_7_Client.Pages
 
         private void OnClientListUpdated()
         {
-            for (var i = 0; i < ClientsContainers.Count; i++)
-            {
-                if (!Client.Participants.Any(x => Equals(x.IpEndPoint, ClientsContainers[i].ClientIpEP)))
-                {
-                    ClientsContainers.RemoveAt(i);
-                    ClientsList.Children.RemoveAt(i);
-                    i--;
-                }
-            }
-
-            for (var i = 0; i < Client.Participants.Count; i++)
-            {
-                if (!ClientsContainers.Any(x => Equals(x.ClientIpEP, Client.Participants[i].IpEndPoint)))
-                {
-                    var newClientContainer = new MeetingClientContainer(Client.Participants[i].Name, Client.Participants[i].IpEndPoint);
-                    ClientsContainers.Add(newClientContainer);
-                    ClientsList.Children.Add(newClientContainer);
-                }
-            }
+            _meetingContainer.UpdateContainers();
         }
 
-        private void OnAnotherCameraStarted(MeetingParticipant client)
+        private void OnAnotherCameraStarted(MeetingParticipant participant)
         {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                MeetingClientContainer meetingClientContainer = null;
-
-                foreach (MeetingClientContainer item in ClientsList.Children)
-                {
-                    if (Equals(item.ClientIpEP, client.IpEndPoint))
-                    {
-                        meetingClientContainer = item;
-                        break;
-                    }
-                }
-
-                try
-                {
-                    meetingClientContainer.CameraOn();
-                }
-                catch { }
-            });
+            var participantContainer = FindParticipantContainer(participant);
+            participantContainer.CameraOn();
         }
-        private void OnAnotherCameraUpdated(MeetingParticipant client)
+        private void OnAnotherCameraUpdated(MeetingParticipant participant)
         {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                MeetingClientContainer meetingClientContainer = null;
-
-                foreach (MeetingClientContainer item in ClientsList.Children)
-                {
-                    if (Equals(item.ClientIpEP, client.IpEndPoint))
-                    {
-                        meetingClientContainer = item;
-                        break;
-                    }
-                }
-
-                try
-                {
-                    meetingClientContainer.UpdateCamera(client.GetFrame());
-                }
-                catch { }
-            });
+            var participantContainer = FindParticipantContainer(participant);
+            participantContainer.UpdateCamera(participant.GetFrame());
         }
-        private void OnAnotherCameraClosed(MeetingParticipant client)
+        private void OnAnotherCameraStopped(MeetingParticipant participant)
         {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                MeetingClientContainer meetingClientContainer = null;
-
-                foreach (MeetingClientContainer item in ClientsList.Children)
-                {
-                    if (Equals(item.ClientIpEP, client.IpEndPoint))
-                    {
-                        meetingClientContainer = item;
-                        break;
-                    }
-                }
-
-                meetingClientContainer.CameraOff();
-            });
+            var participantContainer = FindParticipantContainer(participant);
+            participantContainer.CameraOff();
         }
         private void OnCameraButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -155,7 +93,7 @@ namespace Lab_7_Client.Pages
         }
         public void CameraOn()
         {
-            ((MeetingClientContainer)ClientsList.Children[0]).CameraOn();
+            ParticipantsContainers[0].CameraOn();
             Client.SendCameraStarted();
             VideoSource.Start();
         }
@@ -169,7 +107,7 @@ namespace Lab_7_Client.Pages
             catch { }
             finally
             {
-                ((MeetingClientContainer)ClientsList.Children[0]).CameraOff();
+                ParticipantsContainers[0].CameraOff();
                 Client.SendCameraEnded();
             }
         }
@@ -190,8 +128,7 @@ namespace Lab_7_Client.Pages
                     bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
                     bitmapImage.EndInit();
 
-                    var meetingClientContainer = ClientsList.Children[0] as MeetingClientContainer;
-                    meetingClientContainer.UpdateCamera(bitmapImage);
+                    ParticipantsContainers[0].UpdateCamera(bitmapImage);
                 });
 
                 // Send video frame to server
@@ -200,41 +137,15 @@ namespace Lab_7_Client.Pages
         }
 
 
-        private void OnAnotherAudioStopped(MeetingParticipant client)
+        private void OnAnotherAudioStarted(MeetingParticipant participant)
         {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                MeetingClientContainer meetingClientContainer = null;
-
-                foreach (MeetingClientContainer item in ClientsList.Children)
-                {
-                    if (Equals(item.ClientIpEP, client.IpEndPoint))
-                    {
-                        meetingClientContainer = item;
-                        break;
-                    }
-                }
-
-                meetingClientContainer.AudioOff();
-            });
+            var participantContainer = FindParticipantContainer(participant);
+            participantContainer.AudioOn();
         }
-        private void OnAnotherAudioStarted(MeetingParticipant client)
+        private void OnAnotherAudioStopped(MeetingParticipant participant)
         {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                MeetingClientContainer meetingClientContainer = null;
-
-                foreach (MeetingClientContainer item in ClientsList.Children)
-                {
-                    if (Equals(item.ClientIpEP, client.IpEndPoint))
-                    {
-                        meetingClientContainer = item;
-                        break;
-                    }
-                }
-
-                meetingClientContainer.AudioOn();
-            });
+            var participantContainer = FindParticipantContainer(participant);
+            participantContainer.AudioOff();
         }
         private void OnMicrophoneButtonClicked(object sender, RoutedEventArgs e)
         {
@@ -251,19 +162,33 @@ namespace Lab_7_Client.Pages
         public void AudioOn()
         {
             WaveIn.StartRecording();
-            ((MeetingClientContainer)ClientsList.Children[0]).AudioOn();
+            ParticipantsContainers[0].AudioOn();
             Client.SendAudioStarted();
         }
         public void AudioOff()
         {
             WaveIn.StopRecording();
-            ((MeetingClientContainer)ClientsList.Children[0]).AudioOff();
+            ParticipantsContainers[0].AudioOff();
             Client.SendAudioEnded();
         }
         private void OnWaveDataAvaible(object? sender, WaveInEventArgs e)
         {
             Client.SendAudio(e.Buffer, e.BytesRecorded);
         }
+
+        private void OnRecordButtonClicked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnShareScreen(object sender, RoutedEventArgs e)
+        {
+            ProgramManager.Instance.StartShare(this);
+        }
+
+
+
+
 
         public void Close()
         {
@@ -280,7 +205,7 @@ namespace Lab_7_Client.Pages
             Client.Disconnect();
 
             WaveIn.StopRecording();
-            ((MeetingClientContainer)ClientsList.Children[0]).AudioOff();
+            ParticipantsContainers[0].AudioOff();
             Client.SendAudioEnded();
 
             Close();
@@ -289,15 +214,16 @@ namespace Lab_7_Client.Pages
             VideoSource = null;
         }
 
-
-        private void OnRecordButtonClicked(object sender, RoutedEventArgs e)
+        private MeetingParticipantContainer FindParticipantContainer(MeetingParticipant participant)
         {
-
-        }
-
-        private void OnShareScreen(object sender, RoutedEventArgs e)
-        {
-            ProgramManager.Instance.StartShare(this);
+            foreach (var item in ParticipantsContainers)
+            {
+                if (Equals(item.ClientIpEP, participant.IpEndPoint))
+                {
+                    return item;
+                }
+            }
+            return null;
         }
     }
 }

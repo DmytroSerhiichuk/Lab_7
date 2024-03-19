@@ -13,7 +13,7 @@ namespace Lab_7_Client
         public static event Action? ClientListUpdated;
         public static event Action<MeetingParticipant>? AnotherCameraStarted;
         public static event Action<MeetingParticipant>? AnotherCameraUpdated;
-        public static event Action<MeetingParticipant>? AnotherCameraClosed;
+        public static event Action<MeetingParticipant>? AnotherCameraStopped;
         public static event Action<MeetingParticipant>? AnotherAudioStarted;
         public static event Action<MeetingParticipant>? AnotherAudioStopped;
 
@@ -59,7 +59,7 @@ namespace Lab_7_Client
 
                 while (true)
                 {
-                    if (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond - _serverLastPong > 20000)
+                    if (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond - _serverLastPong > 21000)
                     {
                         MessageBox.Show("Server is not responding", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         Environment.Exit(0);
@@ -241,7 +241,7 @@ namespace Lab_7_Client
                             var client = Participants.Find(c => Equals(c.IpEndPoint, sender));
                             client.UpdateCamera(false);
 
-                            AnotherCameraClosed?.Invoke(client);
+                            AnotherCameraStopped?.Invoke(client);
                         }
                         else if (method == "AUDIO_START")
                         {
@@ -329,7 +329,7 @@ namespace Lab_7_Client
             ClientListUpdated = null;
             AnotherCameraStarted = null;
             AnotherCameraUpdated = null;
-            AnotherCameraClosed = null;
+            AnotherCameraStopped = null;
             AnotherAudioStarted = null;
             AnotherAudioStopped = null;
 
