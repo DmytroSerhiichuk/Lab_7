@@ -1,0 +1,54 @@
+﻿<Page x:Class="Lab_7_Client.Pages.MeetingPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Lab_7_Client.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="MeetingPage">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="22"/>
+            <RowDefinition/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+        
+        <TextBox x:Name="MyTextBox" IsReadOnly="True" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition MinWidth="600" Width="3*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer x:Name="MyScroller" Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <WrapPanel x:Name="ClientsList" Background="White" 
+                               ItemHeight="200" ItemWidth="200" />
+            </ScrollViewer>
+
+            <Border Grid.Column="1" BorderBrush="#FFABADB3" BorderThickness="1 0 0 0"/>
+        </Grid>
+
+        <Border Grid.Row="2" Background="Gray" Padding="0 10 0 0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition MinWidth="600" Width="3*"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Microphone" Click="OnMicrophoneButtonClicked"/>
+                    <Button Content="Camera" Click="OnCameraButtonClicked"/>
+                    <Button Content="Share Screen" Click="OnShareScreen"/>
+                    <Button Content="Start Recording" Click="OnRecordButtonClicked"/>
+                </StackPanel>
+
+                <Button Content="Disconnect" Grid.Column="1" HorizontalAlignment="Right" Click="OnDisconnect"/>
+            </Grid>
+
+        </Border>
+        
+    </Grid>
+</Page>
