@@ -1,5 +1,6 @@
 ﻿using Lab_7_Client.Utils;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -16,6 +17,10 @@ namespace Lab_7_Client
         public static event Action<MeetingParticipant>? AnotherCameraStopped;
         public static event Action<MeetingParticipant>? AnotherAudioStarted;
         public static event Action<MeetingParticipant>? AnotherAudioStopped;
+        public static event Action<bool>? ShareResultReceived;
+        public static event Action? AnotherShareStarted;
+        public static event Action<MeetingParticipant> AnotherShareUpdated;
+        public static event Action? AnotherShareStopped;
 
 
         public static readonly IPEndPoint REMOTE_END_POINT;
@@ -104,6 +109,7 @@ namespace Lab_7_Client
                         {
                             Participants.Clear();
 
+                            var isScreenShared = br.ReadBoolean();
                             var clientsCount = br.ReadInt32();
 
                             for (var i = 0; i < clientsCount; i++)
@@ -124,6 +130,11 @@ namespace Lab_7_Client
                             {
                                 ClientListUpdated?.Invoke();
                             });
+
+                            if (isScreenShared)
+                            {
+                                AnotherShareStarted?.Invoke();
+                            }
 
                             for (var i = 0; i < Participants.Count; i++)
                             {
@@ -275,6 +286,69 @@ namespace Lab_7_Client
 
                             AudioPlayer.Instanse.Stop();
                         }
+                        else if (method == "SHARE_RESULT")
+                        {
+                            var res = br.ReadBoolean();
+
+                            ShareResultReceived?.Invoke(res);
+                        }
+                        else if (method == "SHARE_START")
+                        {
+                            AnotherShareStarted?.Invoke();
+                        }
+                        else if (method == "SHARE_FRAME_FIRST")
+                        {
+                            var address = br.ReadBytes(sizeof(int));
+                            var port = br.ReadInt32();
+
+                            var sender = new IPEndPoint(new IPAddress(address), port);
+
+                            var frameLength = br.ReadInt32();
+                            var chunkIndex = br.ReadInt32();
+                            var chunkSize = br.ReadInt32();
+                            var chunkData = br.ReadBytes(chunkSize);
+
+                            var client = Participants.Find(c => Equals(c.IpEndPoint, sender));
+
+                            client.CreateShareFrame(frameLength);
+                            client.AddShareFrameData(chunkData, chunkIndex);
+                        }
+                        else if (method == "SHARE_FRAME")
+                        {
+                            var address = br.ReadBytes(sizeof(int));
+                            var port = br.ReadInt32();
+
+                            var sender = new IPEndPoint(new IPAddress(address), port);
+
+                            var chunkIndex = br.ReadInt32();
+                            var chunkSize = br.ReadInt32();
+                            var chunkData = br.ReadBytes(chunkSize);
+
+                            var client = Participants.Find(c => Equals(c.IpEndPoint, sender));
+
+                            client.AddShareFrameData(chunkData, chunkIndex);
+                        }
+                        else if (method == "SHARE_FRAME_LAST")
+                        {
+                            var address = br.ReadBytes(sizeof(int));
+                            var port = br.ReadInt32();
+
+                            var sender = new IPEndPoint(new IPAddress(address), port);
+
+                            var chunkIndex = br.ReadInt32();
+                            var chunkSize = br.ReadInt32();
+                            var chunkData = br.ReadBytes(chunkSize);
+
+                            var client = Participants.Find(c => Equals(c.IpEndPoint, sender));
+
+                            client.AddShareFrameData(chunkData, chunkIndex);
+
+                            AnotherShareUpdated?.Invoke(client);
+                        }
+                        else if (method == "SHARE_END")
+                        {
+                            AnotherShareStopped?.Invoke();
+                        }
                     }
                 }
                 catch { }
@@ -332,6 +406,10 @@ namespace Lab_7_Client
             AnotherCameraStopped = null;
             AnotherAudioStarted = null;
             AnotherAudioStopped = null;
+            ShareResultReceived = null;
+            AnotherShareStarted = null;
+            AnotherShareUpdated = null;
+            AnotherShareStopped = null;
 
             ProgramManager.Instance.Navigate(PageType.MainPage);
         }
@@ -351,7 +429,7 @@ namespace Lab_7_Client
         {
             using (var memoryStream = new MemoryStream())
             {
-                bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+                bitmap.Save(memoryStream, ImageFormat.Jpeg);
 
                 byte[] imageData = memoryStream.ToArray();
 
@@ -434,6 +512,74 @@ namespace Lab_7_Client
             using (var bw = new BinaryWriter(ms))
             {
                 bw.Write("AUDIO_END");
+                bw.Write(MeetingId);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+
+        public static void SendShareStart()
+        {
+            using (var ms = new MemoryStream(16))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("SHARE_START");
+                bw.Write(MeetingId);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+        public static void SendShareFrame(Bitmap bitmap)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                bitmap.Save(memoryStream, ImageFormat.Jpeg);
+
+                byte[] imageData = memoryStream.ToArray();
+
+                int bufferSize = 16384;
+                int chunks = (int)Math.Ceiling((double)imageData.Length / bufferSize);
+
+                for (var i = 0; i < chunks; i++)
+                {
+                    using (var ms2 = new MemoryStream(new byte[16500]))
+                    using (var bw = new BinaryWriter(ms2))
+                    {
+                        if (i == 0)
+                        {
+                            bw.Write("SHARE_FRAME_FIRST");    // HEADER
+                            bw.Write(imageData.Length);       // Frame Size
+                        }
+                        else if (i + 1 == chunks)
+                        {
+                            bw.Write("SHARE_FRAME_LAST");     // HEADER
+                        }
+                        else
+                        {
+                            bw.Write("SHARE_FRAME");          // HEADER
+                        }
+
+                        bw.Write(MeetingId);                  // Meeting MeetingId
+                        bw.Write(i);                          // Chunk Index
+
+                        int bytesToSend = Math.Min(bufferSize, imageData.Length - i * bufferSize);
+                        byte[] chunkData = new byte[bytesToSend];
+                        Buffer.BlockCopy(imageData, i * bufferSize, chunkData, 0, bytesToSend);
+
+                        bw.Write(bytesToSend);                // Chunk Size
+                        bw.Write(chunkData);                  // Chunk Data
+
+                        Instance.Send(ms2.ToArray(), (int)ms2.Length, REMOTE_END_POINT);
+                    }
+                }
+            }
+        }
+        public static void SendShareEnd()
+        {
+            using (var ms = new MemoryStream(16))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("SHARE_END");
                 bw.Write(MeetingId);
 
                 Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);

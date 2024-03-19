@@ -31,7 +31,12 @@ namespace Lab_7_Client.CustomComponents
 
             Collection = ParticipantsPanel.Children;
 
-            UpdateContainers();
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            InitContainers();
         }
 
         public void UpdateContainers()
@@ -52,8 +57,22 @@ namespace Lab_7_Client.CustomComponents
                 {
                     var newClientContainer = new MeetingParticipantContainer(Client.Participants[i].Name, Client.Participants[i].IpEndPoint);
                     newClientContainer.Width = 200;
+                    newClientContainer.Height = 200;
                     ParticipantsContainers.Add(newClientContainer);
                     Collection.Add(newClientContainer);
+                }
+            }
+        }
+
+        public void InitContainers()
+        {
+            foreach (var container in ParticipantsContainers)
+            {
+                if (!Collection.Contains(container))
+                {
+                    container.Width = 200;
+                    container.Height = 200;
+                    Collection.Add(container);
                 }
             }
         }

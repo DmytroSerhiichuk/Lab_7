@@ -1,11 +1,13 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using System;
 
 namespace Lab_7_Server
 {
     internal class Server
     {
+        private static object _locker = new object();
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         public static bool IsWorking { get; private set; }
 
@@ -123,6 +125,7 @@ namespace Lab_7_Server
                             using (var bw = new BinaryWriter(response_ms))
                             {
                                 bw.Write("UPDATE_LIST_ONCONNECT");  // Header
+                                bw.Write(meeting.IsScreenShared);
                                 bw.Write(meeting.Clients.Count);    // Clients Count
 
                                 for (var i = 0; i < meeting.Clients.Count; i++)
@@ -388,6 +391,143 @@ namespace Lab_7_Server
                             await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
                         }
                     }
+                    else if (method == "SHARE_START")
+                    {
+                        var meetingId = br.ReadInt64();
+
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        if (meeting.IsScreenShared)
+                        {
+                            using (var response_ms = new MemoryStream(8))
+                            using (var bw = new BinaryWriter(response_ms))
+                            {
+                                bw.Write("SHARE_RESULT");
+                                bw.Write(false);
+
+                                await Instance.SendAsync(response_ms.ToArray(), clientEP);
+                            }
+                        }
+                        else
+                        {
+                            lock (_locker)
+                            {
+                                meeting.StartShare();
+
+                                var sender = meeting.Clients.Find(x => Equals(x.IpEndPoint, clientEP));
+                                sender.UpdateShare(true);
+
+                                using (var response_ms = new MemoryStream(8))
+                                using (var bw = new BinaryWriter(response_ms))
+                                {
+                                    bw.Write("SHARE_RESULT");
+                                    bw.Write(true);
+
+                                    var sendRes = Instance.SendAsync(response_ms.ToArray(), clientEP);
+                                    sendRes.Wait();
+                                }
+
+                                using (var response_ms = new MemoryStream(8))
+                                using (var bw = new BinaryWriter(response_ms))
+                                {
+                                    bw.Write("SHARE_START");
+
+                                    var bRes = Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                                    bRes.Wait();
+                                }
+                            }
+                        }
+                    }
+                    else if (method == "SHARE_FRAME_FIRST")
+                    {
+                        var frameLength = br.ReadInt32();
+                        var meetingId = br.ReadInt64();
+                        var chunkIndex = br.ReadInt32();
+
+                        var chunkSize = br.ReadInt32();
+                        var chunkData = br.ReadBytes(chunkSize);
+
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        using (var response_ms = new MemoryStream(new byte[request.Buffer.Length + 64]))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("SHARE_FRAME_FIRST");                            // HEADER
+                            bw.Write(clientEP.Address.GetAddressBytes());       // Client Address (4 bytes)
+                            bw.Write(clientEP.Port);                            // Client Port
+                            bw.Write(frameLength);                              // Frame Length
+                            bw.Write(chunkIndex);                               // Chunk Index
+                            bw.Write(chunkSize);                                // Chunk Size
+                            bw.Write(chunkData);                                // Chunk Data
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
+                    else if (method == "SHARE_FRAME")
+                    {
+                        var meetingId = br.ReadInt64();
+                        var chunkIndex = br.ReadInt32();
+
+                        var chunkSize = br.ReadInt32();
+                        var chunkData = br.ReadBytes(chunkSize);
+
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        using (var response_ms = new MemoryStream(new byte[request.Buffer.Length + 64]))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("SHARE_FRAME");                                  // HEADER
+                            bw.Write(clientEP.Address.GetAddressBytes());       // Client Address (4 bytes)
+                            bw.Write(clientEP.Port);                            // Client Port
+                            bw.Write(chunkIndex);                               // Chunk Index
+                            bw.Write(chunkSize);                                // Chunk Size
+                            bw.Write(chunkData);                                // Chunk Data
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
+                    else if (method == "SHARE_FRAME_LAST")
+                    {
+                        var meetingId = br.ReadInt64();
+                        var chunkIndex = br.ReadInt32();
+
+                        var chunkSize = br.ReadInt32();
+                        var chunkData = br.ReadBytes(chunkSize);
+
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        using (var response_ms = new MemoryStream(new byte[request.Buffer.Length + 64]))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("SHARE_FRAME_LAST");                             // HEADER
+                            bw.Write(clientEP.Address.GetAddressBytes());       // Client Address (4 bytes)
+                            bw.Write(clientEP.Port);                            // Client Port
+                            bw.Write(chunkIndex);                               // Chunk Index
+                            bw.Write(chunkSize);                                // Chunk Size
+                            bw.Write(chunkData);                                // Chunk Data
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
+                    else if (method == "SHARE_END")
+                    {
+                        var meetingId = br.ReadInt64();
+
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        meeting.StopShare();
+
+                        var sender = meeting.Clients.Find(x => Equals(x.IpEndPoint, clientEP));
+                        sender.UpdateShare(false);
+
+                        using (var response_ms = new MemoryStream(8))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("SHARE_END");
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
                 }
             }
             catch { }
@@ -417,7 +557,19 @@ namespace Lab_7_Server
                             }
                             else
                             {
-                                Meetings[i].Clients.Remove(Meetings[i].Clients[j]);
+                                var client = Meetings[i].Clients[j];
+                                Meetings[i].Clients.Remove(client);
+                                if (client.IsShareScreen)
+                                {
+                                    Meetings[i].StopShare();
+                                    using (var response_ms = new MemoryStream(8))
+                                    using (var bw = new BinaryWriter(response_ms))
+                                    {
+                                        bw.Write("SHARE_END");
+
+                                        await Instance.BroadcastAsync(response_ms.ToArray(), Meetings[i].Clients.Select(x => x.IpEndPoint).ToArray(), null);
+                                    }
+                                }
 
                                 if (Meetings[i].Clients.Count == 0)
                                 {

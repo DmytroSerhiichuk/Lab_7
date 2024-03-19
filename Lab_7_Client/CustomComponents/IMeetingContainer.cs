@@ -14,27 +14,11 @@ namespace Lab_7_Client.CustomComponents
 
         public void UpdateContainers();
 
-        //public void UpdateContainers()
-        //{
-        //    for (var i = 0; i < ParticipantsContainers.Count; i++)
-        //    {
-        //        if (!Client.Participants.Any(x => Equals(x.IpEndPoint, ParticipantsContainers[i].ClientIpEP)))
-        //        {
-        //            ParticipantsContainers.RemoveAt(i);
-        //            Collection.RemoveAt(i);
-        //            i--;
-        //        }
-        //    }
+        public void InitContainers();
 
-        //    for (var i = 0; i < Client.Participants.Count; i++)
-        //    {
-        //        if (!ParticipantsContainers.Any(x => Equals(x.ClientIpEP, Client.Participants[i].IpEndPoint)))
-        //        {
-        //            var newClientContainer = new MeetingParticipantContainer(Client.Participants[i].Name, Client.Participants[i].IpEndPoint);
-        //            ParticipantsContainers.Add(newClientContainer);
-        //            Collection.Add(newClientContainer);
-        //        }
-        //    }
-        //}
+        public void Clear()
+        {
+            Collection.Clear();
+        }
     }
 }

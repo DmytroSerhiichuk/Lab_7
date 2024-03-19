@@ -12,6 +12,15 @@
             <Button Content="X" Width="40" Height="25" HorizontalAlignment="Right" 
                 VerticalAlignment="Top" Foreground="White" 
                 BorderBrush="Red" Background="Red" Click="OnCloseButtonClicked"/>
+
+            <Border Background="Gray" VerticalAlignment="Bottom" Height="50">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Microphone" Click="OnAudioButtonClicked"/>
+                    <Button Content="Camera" Click="OnCameraButtonClicked"/>
+                    <Button Content="Stop Share" Click="OnStopShareClicked"/>
+                    <Button Content="Start Record" Click="OnRecordButtonClicked"/>
+                </StackPanel>
+            </Border>
         </Grid>
     </Border>
 </Window>

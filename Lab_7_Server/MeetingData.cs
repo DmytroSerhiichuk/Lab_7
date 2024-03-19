@@ -4,6 +4,7 @@
     {
         public readonly long Id;
         public List<MeetingUser> Clients { get; private set; }
+        public bool IsScreenShared { get; private set; } = false;
 
         public MeetingData()
         {
@@ -14,6 +15,15 @@
         public void AddClient(MeetingUser client)
         {
             Clients.Add(client);
+        }
+
+        public void StartShare()
+        {
+            IsScreenShared = true;
+        }
+        public void StopShare()
+        {
+            IsScreenShared = false;
         }
     }
 }

@@ -20,7 +20,7 @@ namespace Lab_7_Client.Pages
         private IMeetingContainer _meetingContainer;
         public WaveInEvent WaveIn { get; private set; }
         public VideoCaptureDevice VideoSource { get; private set; }
-        public bool IsAudioRecording { get; private set; } = false;
+        public bool IsAudioRecording { get; set; } = false;
 
         public List<MeetingParticipantContainer> ParticipantsContainers { get; private set; }
 
@@ -32,8 +32,8 @@ namespace Lab_7_Client.Pages
 
             ParticipantsContainers = new List<MeetingParticipantContainer>();
 
-            _meetingContainer = new ScreenShareMeetingContainer(ParticipantsContainers);
-
+            _meetingContainer = new MainMeetingContainer(ParticipantsContainers);
+            _meetingContainer.UpdateContainers();
             MeetingContainerBorder.Child = (UIElement)_meetingContainer;
 
             Client.ClientListUpdated += OnClientListUpdated;
@@ -44,6 +44,11 @@ namespace Lab_7_Client.Pages
 
             Client.AnotherAudioStarted += OnAnotherAudioStarted;
             Client.AnotherAudioStopped += OnAnotherAudioStopped;
+
+            Client.ShareResultReceived += OnShareResultReceived;
+            Client.AnotherShareStarted += OnAnotherShareStarted;
+            Client.AnotherShareStopped += OnAnotherShareStopped;
+            Client.AnotherShareUpdated += OnAnotherShareUpdated;
 
             // Camera
             var videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
@@ -183,11 +188,45 @@ namespace Lab_7_Client.Pages
 
         private void OnShareScreen(object sender, RoutedEventArgs e)
         {
-            ProgramManager.Instance.StartShare(this);
+            Client.SendShareStart();
         }
-
-
-
+        private void OnShareResultReceived(bool res)
+        {
+            if (res)
+            {
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    ProgramManager.Instance.StartShare(this);
+                });
+            }
+        }
+        private void OnAnotherShareStarted()
+        {
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                _meetingContainer.Clear();
+                _meetingContainer = new ScreenShareMeetingContainer(ParticipantsContainers);
+                MeetingContainerBorder.Child = (UIElement)_meetingContainer;
+            });
+            
+        }
+        private void OnAnotherShareUpdated(MeetingParticipant participant)
+        {
+            if (_meetingContainer is ScreenShareMeetingContainer)
+            {
+                var mc = _meetingContainer as ScreenShareMeetingContainer;
+                mc.UpdateShareScreen(participant.GetShareFrame());
+            }
+        }
+        private void OnAnotherShareStopped()
+        {
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                _meetingContainer.Clear();
+                _meetingContainer = new MainMeetingContainer(ParticipantsContainers);
+                MeetingContainerBorder.Child = (UIElement)_meetingContainer;
+            });
+        }
 
 
         public void Close()

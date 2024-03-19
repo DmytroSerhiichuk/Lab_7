@@ -28,7 +28,14 @@ namespace Lab_7_Client.Utils
             {
                 g.CopyFromScreen(Point.Empty, Point.Empty, new Size(width, height));
 
-                return bmp;
+                var rBmp = new Bitmap(1280, 720);
+
+                using (var g2 = Graphics.FromImage(rBmp))
+                {
+                    g2.DrawImage(bmp, new Rectangle(0, 0, 1280, 720));
+                }
+
+                return rBmp;
             }
         }
 
@@ -36,5 +43,10 @@ namespace Lab_7_Client.Utils
 
         [DllImport("user32.dll")]
         private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int nFlags);
+
+        internal static object GetFullScreen(double actualWidth, double actualHeight)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

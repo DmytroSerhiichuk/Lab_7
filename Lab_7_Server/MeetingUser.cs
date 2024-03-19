@@ -9,6 +9,7 @@ namespace Lab_7_Server
         public long LastPong { get; private set; }
         public bool IsUsingCamera { get; private set; } = false;
         public bool IsUsingAudio { get; private set; } = false;
+        public bool IsShareScreen { get; private set; } = false;
 
         public MeetingUser(IPEndPoint endPoint, string name)
         {
@@ -33,6 +34,10 @@ namespace Lab_7_Server
         public void UpdateAudio(bool value)
         {
             IsUsingAudio = value;
+        }
+        public void UpdateShare(bool value)
+        {
+            IsShareScreen = value;
         }
     }
 }

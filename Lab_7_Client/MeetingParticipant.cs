@@ -14,6 +14,9 @@ namespace Lab_7_Client
         public List<(byte[], int)> Frame { get; private set; } = new List<(byte[], int)>();
         private byte[] _frameBuffer;
 
+        public List<(byte[], int)> ShareFrame { get; private set; } = new List<(byte[], int)>();
+        private byte[] _shareFrameBuffer;
+
         public MeetingParticipant(string name, IPEndPoint endPoint)
         {
             IpEndPoint = endPoint;
@@ -38,7 +41,6 @@ namespace Lab_7_Client
         {
             Frame.Add(new(array, index));
         }
-
         public BitmapImage GetFrame()
         {
             for (var i = 0; i < Frame.Count; i++)
@@ -47,6 +49,36 @@ namespace Lab_7_Client
             }
 
             using (MemoryStream memoryStream = new MemoryStream(_frameBuffer))
+            {
+
+                BitmapImage bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.StreamSource = memoryStream;
+                bitmapImage.EndInit();
+
+                bitmapImage.Freeze();
+                return bitmapImage;
+            }
+        }
+
+        public void CreateShareFrame(int length)
+        {
+            ShareFrame = new List<(byte[], int)>();
+            _shareFrameBuffer = new byte[length];
+        }
+        public void AddShareFrameData(byte[] array, int index)
+        {
+            ShareFrame.Add(new(array, index));
+        }
+        public BitmapImage GetShareFrame()
+        {
+            for (var i = 0; i < ShareFrame.Count; i++)
+            {
+                Buffer.BlockCopy(ShareFrame[i].Item1, 0, _shareFrameBuffer, ShareFrame[i].Item2 * 16384, ShareFrame[i].Item1.Length);
+            }
+
+            using (MemoryStream memoryStream = new MemoryStream(_shareFrameBuffer))
             {
 
                 BitmapImage bitmapImage = new BitmapImage();
