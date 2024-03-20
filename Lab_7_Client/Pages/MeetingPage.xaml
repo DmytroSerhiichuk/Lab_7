@@ -44,7 +44,7 @@
                     <Button Content="Microphone" Click="OnMicrophoneButtonClicked"/>
                     <Button Content="Camera" Click="OnCameraButtonClicked"/>
                     <Button Content="Share Screen" Click="OnShareScreen"/>
-                    <Button Content="Start Recording" Click="OnRecordButtonClicked"/>
+                    <Button x:Name="RecBtn" Content="Start Recording" Click="OnRecordButtonClicked"/>
                 </StackPanel>
 
                 <Button Content="Disconnect" Grid.Column="1" HorizontalAlignment="Right" Click="OnDisconnect"/>

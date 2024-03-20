@@ -1,5 +1,4 @@
-﻿using AForge.Video;
-using Lab_7_Client.Utils;
+﻿using Lab_7_Client.Utils;
 using System.Windows;
 
 namespace Lab_7_Client.Pages
@@ -20,6 +19,11 @@ namespace Lab_7_Client.Pages
 
             _cts = new CancellationTokenSource();
 
+            if (meetingPage.IsRecording)
+            {
+                RecBtn.Content = "Stop Recording";
+            }
+
             Loaded += OnLoaded;
         }
 
@@ -32,7 +36,7 @@ namespace Lab_7_Client.Pages
         {
             while (!token.IsCancellationRequested)
             {
-                var frame = ScreenRecorder.GetFullScreen((int)ActualWidth, (int)ActualHeight);
+                var frame = ScreenShot.GetFullScreen((int)ActualWidth, (int)ActualHeight);
 
                 Client.SendShareFrame(frame);
             }
@@ -76,6 +80,7 @@ namespace Lab_7_Client.Pages
         private void OnStopShareClicked(object sender, RoutedEventArgs e)
         {
             _cts.Cancel();
+            meetingPage.IsScreenShared = false;
             Client.SendShareEnd();
             ProgramManager.Instance.StopShare();
             Close();
@@ -83,7 +88,15 @@ namespace Lab_7_Client.Pages
 
         private void OnRecordButtonClicked(object sender, RoutedEventArgs e)
         {
-
+            if (!meetingPage.IsRecording)
+            {
+                RecBtn.Content = "Stop Recording";
+            }
+            else
+            {
+                RecBtn.Content = "Start Recording";
+            }
+            meetingPage.IsRecording = !meetingPage.IsRecording;
         }
     }
 }

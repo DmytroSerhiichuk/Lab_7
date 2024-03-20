@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Lab_7_Client.Utils
 {
-    internal class ScreenRecorder
+    internal class ScreenShot
     {
         public static Bitmap GetWindow(IntPtr hWnd, int width, int height)
         {
@@ -16,7 +16,14 @@ namespace Lab_7_Client.Utils
                 PrintWindow(hWnd, hdcBitmap, 0);
                 g.ReleaseHdc(hdcBitmap);
 
-                return bmp;
+                var rBmp = new Bitmap(1280, 720);
+
+                using (var g2 = Graphics.FromImage(rBmp))
+                {
+                    g2.DrawImage(bmp, new Rectangle(0, 0, 1280, 720));
+                }
+
+                return rBmp;
             }
         }
 

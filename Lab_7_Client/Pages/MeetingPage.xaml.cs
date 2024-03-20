@@ -21,6 +21,30 @@ namespace Lab_7_Client.Pages
         public WaveInEvent WaveIn { get; private set; }
         public VideoCaptureDevice VideoSource { get; private set; }
         public bool IsAudioRecording { get; set; } = false;
+        public bool IsScreenShared { get; set; } = false;
+        private bool _isRecording = false;
+        public bool IsRecording
+        {
+            get => _isRecording;
+            set 
+            { 
+                _isRecording = value;
+                if (value)
+                {
+                    RecBtn.Content = "Stop Recording";
+                    App.Current.MainWindow.WindowState = WindowState.Maximized;
+                    App.Current.MainWindow.ResizeMode = ResizeMode.NoResize;
+                    Recorder.StartRecording();
+                }
+                else
+                {
+                    Recorder.StopRecording();
+                    App.Current.MainWindow.WindowState = WindowState.Normal;
+                    App.Current.MainWindow.ResizeMode = ResizeMode.CanResize;
+                    RecBtn.Content = "Start Recording";
+                }
+            }
+        }
 
         public List<MeetingParticipantContainer> ParticipantsContainers { get; private set; }
 
@@ -183,7 +207,7 @@ namespace Lab_7_Client.Pages
 
         private void OnRecordButtonClicked(object sender, RoutedEventArgs e)
         {
-
+            IsRecording = !IsRecording;
         }
 
         private void OnShareScreen(object sender, RoutedEventArgs e)
@@ -194,6 +218,7 @@ namespace Lab_7_Client.Pages
         {
             if (res)
             {
+                IsScreenShared = true;
                 App.Current.Dispatcher.Invoke(() =>
                 {
                     ProgramManager.Instance.StartShare(this);
@@ -233,6 +258,7 @@ namespace Lab_7_Client.Pages
         {
             try
             {
+                Recorder.StopRecording();
                 VideoSource.SignalToStop();
                 VideoSource.Stop();
             }

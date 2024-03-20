@@ -18,7 +18,7 @@
                     <Button Content="Microphone" Click="OnAudioButtonClicked"/>
                     <Button Content="Camera" Click="OnCameraButtonClicked"/>
                     <Button Content="Stop Share" Click="OnStopShareClicked"/>
-                    <Button Content="Start Record" Click="OnRecordButtonClicked"/>
+                    <Button x:Name="RecBtn" Content="Start Record" Click="OnRecordButtonClicked"/>
                 </StackPanel>
             </Border>
         </Grid>
