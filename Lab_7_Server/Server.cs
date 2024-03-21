@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.IO;
 using System;
+using static System.Net.WebRequestMethods;
 
 namespace Lab_7_Server
 {
@@ -24,6 +25,8 @@ namespace Lab_7_Server
         {
             try
             {
+                FileManager.ClearTempFolder();
+
                 Instance.Start();
 
                 IsWorking = true;
@@ -89,6 +92,8 @@ namespace Lab_7_Server
 
                         var meeting = new MeetingData();
                         Meetings.Add(meeting);
+
+                        FileManager.CreateMeetingCatalog(meeting.Id);
 
                         meeting.AddClient(new MeetingUser(clientEP, name));
 
@@ -178,6 +183,7 @@ namespace Lab_7_Server
 
                         if (meeting.Clients.Count == 0)
                         {
+                            FileManager.DeleteMeetingCatalog(meetingId);
                             Meetings.Remove(meeting);
                         }
                         else
@@ -528,6 +534,145 @@ namespace Lab_7_Server
                             await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
                         }
                     }
+                    else if (method == "CHAT")
+                    {
+                        var meetingId = br.ReadInt64();
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+                        var senderName = br.ReadString();
+
+                        var address = br.ReadBytes(sizeof(int));
+                        var port = br.ReadInt32();
+                        var message = br.ReadString();
+
+                        var receiver = new IPEndPoint(new IPAddress(address), port);
+
+                        using (var response_ms = new MemoryStream(16))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("CHAT");
+                            bw.Write(senderName);
+                            bw.Write(message);
+
+                            await Instance.SendAsync(response_ms.ToArray(), receiver);
+                        }
+                    }
+                    else if (method == "CHAT_ALL")
+                    {
+                        var senderName = br.ReadString();
+                        var meetingId = br.ReadInt64();
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        var message = br.ReadString();
+
+                        using (var response_ms = new MemoryStream())
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("CHAT_ALL");
+                            bw.Write(senderName);
+                            bw.Write(message);
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
+                    else if (method == "FILE")
+                    {
+                        var meetingId = br.ReadInt64();
+
+                        var fileId = br.ReadString();
+                        var cursorPosition = br.ReadInt32();
+
+                        var dataLength = br.ReadInt32();
+                        var data = br.ReadBytes(dataLength);
+
+                        FileManager.WriteDataToFile(data, cursorPosition, meetingId, fileId);
+                    }
+                    else if (method == "FILE_LAST")
+                    {
+                        var fileName = br.ReadString();
+                        var senderName = br.ReadString();
+
+                        var address = br.ReadBytes(sizeof(int));
+                        var port = br.ReadInt32();                        
+
+                        var receiver = new IPEndPoint(new IPAddress(address), port);
+
+                        var meetingId = br.ReadInt64();
+
+                        var fileId = br.ReadString();
+                        var cursorPosition = br.ReadInt32();
+
+                        var dataLength = br.ReadInt32();
+                        var data = br.ReadBytes(dataLength);
+
+                        FileManager.WriteDataToFile(data, cursorPosition, meetingId, fileId);
+
+                        using (var response_ms = new MemoryStream(16))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("FILE_UPLOADED");
+                            bw.Write(senderName);
+                            bw.Write(fileName);
+                            bw.Write(FileManager.GetFileSize(meetingId, fileId));
+                            bw.Write(fileId);
+
+                            await Instance.SendAsync(response_ms.ToArray(), receiver);
+                        }
+                    }
+                    else if (method == "FILE_LAST_ALL")
+                    {
+                        var fileName = br.ReadString();
+                        var senderName = br.ReadString();
+
+                        var meetingId = br.ReadInt64();
+                        var meeting = Meetings.Find(x => x.Id == meetingId);
+
+                        var fileId = br.ReadString();
+                        var cursorPosition = br.ReadInt32();
+
+                        var dataLength = br.ReadInt32();
+                        var data = br.ReadBytes(dataLength);
+
+                        FileManager.WriteDataToFile(data, cursorPosition, meetingId, fileId);
+
+                        using (var response_ms = new MemoryStream())
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("FILE_UPLOADED_ALL");
+                            bw.Write(senderName);
+                            bw.Write(fileName);
+                            bw.Write(FileManager.GetFileSize(meetingId, fileId));
+                            bw.Write(fileId);
+
+                            await Instance.BroadcastAsync(response_ms.ToArray(), meeting.Clients.Select(x => x.IpEndPoint).ToArray(), clientEP);
+                        }
+                    }
+                    else if (method == "FILE_DELETE")
+                    {
+                        var meetingId = br.ReadInt64();
+                        var fileId = br.ReadString();
+
+                        FileManager.DeleteFile(meetingId, fileId);
+                    }
+                    else if (method == "DOWNLOAD_FILE")
+                    {
+                        var meetingId = br.ReadInt64();
+                        var fileId = br.ReadString();
+
+                        var cursor = br.ReadInt64();
+
+                        (var data, var bytesRead) = FileManager.GetFileData(meetingId, fileId, cursor);
+
+                        using (var response_ms = new MemoryStream(16))
+                        using (var bw = new BinaryWriter(response_ms))
+                        {
+                            bw.Write("DOWNLOAD_FILE");
+                            bw.Write(fileId);
+                            bw.Write(bytesRead);
+                            bw.Write(data);
+
+                            await Instance.SendAsync(response_ms.ToArray(), clientEP);
+                        }
+                    }
                 }
             }
             catch { }
@@ -573,6 +718,7 @@ namespace Lab_7_Server
 
                                 if (Meetings[i].Clients.Count == 0)
                                 {
+                                    FileManager.DeleteMeetingCatalog(Meetings[i].Id);
                                     Meetings.RemoveAt(i);
                                     i--;
                                     break;

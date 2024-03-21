@@ -30,7 +30,7 @@
                            ItemHeight="200" ItemWidth="200" />
             </ScrollViewer>-->
 
-            <Border Grid.Column="1" BorderBrush="#FFABADB3" BorderThickness="1 0 0 0"/>
+            <Border x:Name="ChatBorder" Grid.Column="1" BorderBrush="#FFABADB3" BorderThickness="1 0 0 0"/>
         </Grid>
 
         <Border Grid.Row="2" Background="Gray" Padding="0 10 0 0">

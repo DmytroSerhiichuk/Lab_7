@@ -52,6 +52,8 @@ namespace Lab_7_Client.Pages
         {
             InitializeComponent();
 
+            ChatBorder.Child = new MeetingChat();
+
             MyTextBox.Text = $"Meeting ID: {Client.MeetingId}";
 
             ParticipantsContainers = new List<MeetingParticipantContainer>();
@@ -258,7 +260,8 @@ namespace Lab_7_Client.Pages
         {
             try
             {
-                Recorder.StopRecording();
+                if (IsRecording)
+                    Recorder.StopRecording();
                 VideoSource.SignalToStop();
                 VideoSource.Stop();
             }

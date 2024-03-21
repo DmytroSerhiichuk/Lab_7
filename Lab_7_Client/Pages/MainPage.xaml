@@ -27,14 +27,37 @@
             </Grid>
         </StackPanel>
 
-        <Grid Grid.Column="1" VerticalAlignment="Top">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.2*"/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
+        <Border Grid.Column="1" BorderThickness="1" BorderBrush="Gray">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
 
-            <Label Grid.Column="0" Content="Name:"/>
-            <TextBox Grid.Column="1" x:Name="UserNameInput" />
-        </Grid>
+                <Grid Grid.Row="0" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.2*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Label Grid.Column="0" Content="Name:"/>
+                    <TextBox Grid.Column="1" x:Name="UserNameInput" />
+                </Grid>
+
+                <Border Grid.Row="1" x:Name="SchedulerContainer"/>
+                <!--<StackPanel Grid.Row="1">
+                    <Button Content="Add Meeting"/>
+                    <ScrollViewer Margin="0 10 0 0" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="Date: 27.04.2024"/>
+                                <Button Content="Delete"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </StackPanel>-->
+            </Grid>
+        </Border>
+        
     </Grid>
 </Page>

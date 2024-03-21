@@ -22,6 +22,13 @@ namespace Lab_7_Client
         public static event Action<MeetingParticipant> AnotherShareUpdated;
         public static event Action? AnotherShareStopped;
 
+        public static event Action<string, string, string>? MessageReceived;
+        public static event Action<string, long, string, string, string>? FileUploaded;
+
+        public static event Action<string, byte[]>? FilePartDownloaded;
+
+
+        public static readonly string ScheduleFile = ".\\.schedule.txt";
 
         public static readonly IPEndPoint REMOTE_END_POINT;
         public static UdpClient Instance { get; private set; }
@@ -34,6 +41,11 @@ namespace Lab_7_Client
 
         static Client()
         {
+            if (!File.Exists(ScheduleFile))
+            {
+                File.Create(ScheduleFile);
+            }
+
             Instance = new UdpClient();
             REMOTE_END_POINT = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 3000);
 
@@ -349,6 +361,46 @@ namespace Lab_7_Client
                         {
                             AnotherShareStopped?.Invoke();
                         }
+                        else if (method == "CHAT")
+                        {
+                            var name = br.ReadString();
+                            var message = br.ReadString();
+
+                            MessageReceived?.Invoke(name, message, "You");
+                        }
+                        else if (method == "CHAT_ALL")
+                        {
+                            var name = br.ReadString();
+                            var message = br.ReadString();
+
+                            MessageReceived?.Invoke(name, message, "Everyone");
+                        }
+                        else if (method == "FILE_UPLOADED")
+                        {
+                            var senderName = br.ReadString();
+                            var fileName = br.ReadString();
+                            var fileSize = br.ReadInt64();
+                            var idName = br.ReadString();
+
+                            FileUploaded?.Invoke(senderName, fileSize, fileName, idName, "You");
+                        }
+                        else if (method == "FILE_UPLOADED_ALL")
+                        {
+                            var senderName = br.ReadString();
+                            var fileName = br.ReadString();
+                            var fileSize = br.ReadInt64();
+                            var idName = br.ReadString();
+
+                            FileUploaded?.Invoke(senderName, fileSize, fileName, idName, "Everyone");
+                        }
+                        else if (method == "DOWNLOAD_FILE")
+                        {
+                            var fileId = br.ReadString();
+                            var dataSize = br.ReadInt32();
+                            var data = br.ReadBytes(dataSize);
+
+                            FilePartDownloaded?.Invoke(fileId, data);
+                        }
                     }
                 }
                 catch { }
@@ -410,6 +462,10 @@ namespace Lab_7_Client
             AnotherShareStarted = null;
             AnotherShareUpdated = null;
             AnotherShareStopped = null;
+            MessageReceived = null;
+            FileUploaded = null;
+            FilePartDownloaded = null;
+
 
             ProgramManager.Instance.Navigate(PageType.MainPage);
         }
@@ -433,12 +489,12 @@ namespace Lab_7_Client
 
                 byte[] imageData = memoryStream.ToArray();
 
-                int bufferSize = 4096;
+                int bufferSize = 32768;
                 int chunks = (int)Math.Ceiling((double)imageData.Length / bufferSize);
 
                 for (var i = 0; i < chunks; i++)
                 {
-                    using (var ms2 = new MemoryStream(new byte[4200]))
+                    using (var ms2 = new MemoryStream(new byte[32900]))
                     using (var bw = new BinaryWriter(ms2))
                     {
                         if (i == 0)
@@ -537,12 +593,12 @@ namespace Lab_7_Client
 
                 byte[] imageData = memoryStream.ToArray();
 
-                int bufferSize = 16384;
+                int bufferSize = 32768;
                 int chunks = (int)Math.Ceiling((double)imageData.Length / bufferSize);
 
                 for (var i = 0; i < chunks; i++)
                 {
-                    using (var ms2 = new MemoryStream(new byte[16500]))
+                    using (var ms2 = new MemoryStream(new byte[32900]))
                     using (var bw = new BinaryWriter(ms2))
                     {
                         if (i == 0)
@@ -584,6 +640,192 @@ namespace Lab_7_Client
 
                 Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
             }
+        }
+
+        public static void SendMessage(string message, IPEndPoint receiver)
+        {
+            using (var ms = new MemoryStream(32))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("CHAT");
+                bw.Write(MeetingId);
+                bw.Write(LocalName);
+                bw.Write(receiver.Address.GetAddressBytes());
+                bw.Write(receiver.Port);
+                bw.Write(message);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+        public static void SendMessageToAll(string message)
+        {
+            using (var ms = new MemoryStream(32))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("CHAT_ALL");
+                bw.Write(LocalName);
+                bw.Write(MeetingId);
+                bw.Write(message);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+
+        public static void SendFileDelete(string idName)
+        {
+            using (var ms = new MemoryStream(16))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("FILE_DELETE");
+                bw.Write(MeetingId);
+                bw.Write(idName);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+        public static bool SendFile(string path, string idName, IPEndPoint receiver, CancellationToken token)
+        {
+            using (var file = File.OpenRead(path))
+            {
+                int bufferSize = 32768;
+                int chunks = (int)Math.Ceiling((double)file.Length / bufferSize);
+
+                for (var i = 0; i < chunks && !token.IsCancellationRequested; i++)
+                {
+                    using (var ms2 = new MemoryStream(new byte[32900]))
+                    using (var bw = new BinaryWriter(ms2))
+                    {
+                        if (i + 1 == chunks)
+                        {
+                            bw.Write("FILE_LAST");
+                            bw.Write(Path.GetFileName(file.Name));
+                            bw.Write(LocalName);
+                            bw.Write(receiver.Address.GetAddressBytes());
+                            bw.Write(receiver.Port);
+                        }
+                        else
+                        {
+                            bw.Write("FILE");
+                        }
+
+                        bw.Write(MeetingId);
+                        bw.Write(idName);
+                        bw.Write(i * bufferSize);
+
+                        byte[] data = new byte[bufferSize];
+                        var bytesCount = file.Read(data, 0, bufferSize);
+
+                        bw.Write(bytesCount);
+                        bw.Write(data);
+
+                        Instance.Send(ms2.ToArray(), (int)ms2.Length, REMOTE_END_POINT);
+                    }
+                }
+                if (token.IsCancellationRequested)
+                {
+                    SendFileDelete(idName);
+                    return true;
+                }
+                return true;
+            }
+        }
+        public static bool SendFileToAll(string path, string idName, CancellationToken token)
+        {
+            using (var file = File.OpenRead(path))
+            {
+                int bufferSize = 32768;
+                int chunks = (int)Math.Ceiling((double)file.Length / bufferSize);
+
+                for (var i = 0; i < chunks && !token.IsCancellationRequested; i++)
+                {
+                    using (var ms2 = new MemoryStream(new byte[32900]))
+                    using (var bw = new BinaryWriter(ms2))
+                    {
+                        if (i + 1 == chunks)
+                        {
+                            bw.Write("FILE_LAST_ALL");
+                            bw.Write(Path.GetFileName(file.Name));
+                            bw.Write(LocalName);
+                        }
+                        else
+                        {
+                            bw.Write("FILE");
+                        }
+
+                        bw.Write(MeetingId);
+                        bw.Write(idName);
+                        bw.Write(i * bufferSize);
+
+                        byte[] data = new byte[bufferSize];
+                        var bytesCount = file.Read(data, 0, bufferSize);
+
+                        bw.Write(bytesCount);
+                        bw.Write(data);
+
+                        Instance.Send(ms2.ToArray(), (int)ms2.Length, REMOTE_END_POINT);
+                    }
+                }
+                if (token.IsCancellationRequested)
+                {
+                    SendFileDelete(idName);
+                    return true;
+                }
+                return true;
+            }
+        }
+
+        public static void DownloadFile(string idName, long byteIndex)
+        {
+            using (var ms = new MemoryStream(16))
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write("DOWNLOAD_FILE");
+                bw.Write(MeetingId);
+                bw.Write(idName);
+                bw.Write(byteIndex);
+
+                Instance.Send(ms.ToArray(), (int)ms.Length, REMOTE_END_POINT);
+            }
+        }
+
+        public static void AddSchedule(DateTime date)
+        {
+            using (var sw = new StreamWriter(ScheduleFile, true))
+            {
+                sw.WriteLine($"Date: {date.Day}.{date.Month}.{date.Year}");
+            }
+        }
+        public static List<string> GetSchedule()
+        {
+            var res = new List<string>();
+
+            using (var sw = new StreamReader(ScheduleFile))
+            {
+                res.Add(sw.ReadLine());
+            }
+
+            return res;
+        }
+        public static void DeleteSchedule(string str)
+        {
+            var lines = File.ReadAllLines(ScheduleFile);
+            var newLines = new List<string>();
+
+            bool deleted = false;
+
+            foreach (var line in lines)
+            {
+                if (line == str && !deleted)
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    newLines.Add(line);
+                }
+            }
+
+            File.WriteAllLines(ScheduleFile, newLines);
         }
     }
 }

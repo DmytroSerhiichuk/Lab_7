@@ -39,6 +39,8 @@ namespace Lab_7_Client.Pages
                 var frame = ScreenShot.GetFullScreen((int)ActualWidth, (int)ActualHeight);
 
                 Client.SendShareFrame(frame);
+
+                Task.Delay(1000 / 30);
             }
         }
 

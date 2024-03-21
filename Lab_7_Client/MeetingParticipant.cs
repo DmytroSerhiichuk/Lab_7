@@ -4,7 +4,7 @@ using System.Windows.Media.Imaging;
 
 namespace Lab_7_Client
 {
-    internal class MeetingParticipant
+    public class MeetingParticipant
     {
         public IPEndPoint IpEndPoint { get; private set; }
         public string Name { get; private set; }
@@ -45,7 +45,7 @@ namespace Lab_7_Client
         {
             for (var i = 0; i < Frame.Count; i++)
             {
-                Buffer.BlockCopy(Frame[i].Item1, 0, _frameBuffer, Frame[i].Item2 * 4096, Frame[i].Item1.Length);
+                Buffer.BlockCopy(Frame[i].Item1, 0, _frameBuffer, Frame[i].Item2 * 32768, Frame[i].Item1.Length);
             }
 
             using (MemoryStream memoryStream = new MemoryStream(_frameBuffer))
@@ -75,7 +75,7 @@ namespace Lab_7_Client
         {
             for (var i = 0; i < ShareFrame.Count; i++)
             {
-                Buffer.BlockCopy(ShareFrame[i].Item1, 0, _shareFrameBuffer, ShareFrame[i].Item2 * 16384, ShareFrame[i].Item1.Length);
+                Buffer.BlockCopy(ShareFrame[i].Item1, 0, _shareFrameBuffer, ShareFrame[i].Item2 * 32768, ShareFrame[i].Item1.Length);
             }
 
             using (MemoryStream memoryStream = new MemoryStream(_shareFrameBuffer))

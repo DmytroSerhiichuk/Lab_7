@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using Lab_7_Client.CustomComponents;
 using Lab_7_Client.Utils;
 
 namespace Lab_7_Client.Pages
@@ -12,6 +13,8 @@ namespace Lab_7_Client.Pages
         public MainPage()
         {
             InitializeComponent();
+
+            SchedulerContainer.Child = new Scheduler();
 
             Client.Connected += OnConnected;
         }
