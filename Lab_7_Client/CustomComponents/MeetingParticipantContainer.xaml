@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Lab_7_Client.CustomComponents"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Border x:Name="MainBorder" BorderBrush="#FFABADB3" BorderThickness="1" Margin="10">
+    <Border x:Name="MainBorder" BorderBrush="#FFABADB3" BorderThickness="1" Margin="10" Padding="3">
         <!--BorderBrush="#FF0F42DA"--> 
         <Grid>
             <Border Panel.ZIndex="-1">

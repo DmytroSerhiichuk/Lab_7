@@ -7,7 +7,7 @@ namespace Lab_7_Server
     {
         private CancellationTokenSource _cts;
 
-        private readonly List<UdpServerClient> _udpClients;
+        private List<UdpServerClient> _udpClients;
         private readonly SemaphoreSlim _semaphore;
 
         public UdpClient Instance { get; private set; }
@@ -16,7 +16,6 @@ namespace Lab_7_Server
         public UdpServer(IPAddress address, int port)
         {
             IPEndPoint = new IPEndPoint(address, port);
-            _udpClients = new List<UdpServerClient>();
             _semaphore = new SemaphoreSlim(1);
             _cts = new CancellationTokenSource();
         }
@@ -24,6 +23,8 @@ namespace Lab_7_Server
         public void Start()
         {
             Instance = new UdpClient(IPEndPoint);
+
+            _udpClients = new List<UdpServerClient>();
 
             var token = _cts.Token;
             Task.Run(() => CheckClients(token), token);
