@@ -1,18 +1,13 @@
-﻿using NAudio.SoundFont;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Lab_7_Client.Utils
 {
     internal class Recorder
     {
+        //-f dshow -i audio =\"Stereo Mix (Realtek High Definition Audio)\" 
         private const string _ffmpegPath = @"D:\Program Files\ffmpeg\bin\ffmpeg.exe";
-        private const string args = "-f dshow -i audio=\"Stereo Mix (Realtek High Definition Audio)\" -f gdigrab -framerate 30 -draw_mouse 0 -i desktop -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -c:a aac";
+        private const string args = "-f gdigrab -framerate 30 -draw_mouse 0 -i desktop -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -c:a aac";
 
         private readonly static string _outputPath = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
         private readonly static string _tempName;

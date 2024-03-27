@@ -1,8 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.IO;
-using System;
-using static System.Net.WebRequestMethods;
 
 namespace Lab_7_Server
 {

@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,8 +13,9 @@ namespace Lab_7_Client.CustomComponents
     /// </summary>
     public partial class MeetingParticipantContainer : UserControl
     {
-        public IPEndPoint ClientIpEP { get; private set; }
+        private WriteableBitmap _color;
 
+        public IPEndPoint ClientIpEP { get; private set; }
         public bool IsCameraWorking { get; private set; } = false;        
 
         public MeetingParticipantContainer(string name, IPEndPoint ipEndPoint)
@@ -22,6 +25,16 @@ namespace Lab_7_Client.CustomComponents
             ClientName.Text = name;
 
             ClientIpEP = ipEndPoint;
+
+            byte[] c;
+
+            using (HashAlgorithm algorithm = SHA256.Create())
+                c = algorithm.ComputeHash(Encoding.UTF8.GetBytes(name));
+
+            _color = new WriteableBitmap(1, 1, 1, 1, PixelFormats.Rgb24, null);
+            _color.WritePixels(new Int32Rect(0, 0, 1, 1), new byte[] { c[0], c[1], c[2] }, 3, 0);
+
+            ClientCamera.Source = _color;
         }
 
         public void CameraOn()
@@ -32,7 +45,7 @@ namespace Lab_7_Client.CustomComponents
         {
             App.Current.Dispatcher.Invoke(() =>
             {
-                ClientCamera.Source = null;
+                ClientCamera.Source = _color;
                 IsCameraWorking = false;
             });
         }

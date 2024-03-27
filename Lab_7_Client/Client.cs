@@ -21,10 +21,8 @@ namespace Lab_7_Client
         public static event Action? AnotherShareStarted;
         public static event Action<MeetingParticipant> AnotherShareUpdated;
         public static event Action? AnotherShareStopped;
-
         public static event Action<string, string, string>? MessageReceived;
         public static event Action<string, long, string, string, string>? FileUploaded;
-
         public static event Action<string, byte[]>? FilePartDownloaded;
 
 
@@ -603,27 +601,27 @@ namespace Lab_7_Client
                     {
                         if (i == 0)
                         {
-                            bw.Write("SHARE_FRAME_FIRST");    // HEADER
-                            bw.Write(imageData.Length);       // Frame Size
+                            bw.Write("SHARE_FRAME_FIRST");
+                            bw.Write(imageData.Length);
                         }
                         else if (i + 1 == chunks)
                         {
-                            bw.Write("SHARE_FRAME_LAST");     // HEADER
+                            bw.Write("SHARE_FRAME_LAST");
                         }
                         else
                         {
-                            bw.Write("SHARE_FRAME");          // HEADER
+                            bw.Write("SHARE_FRAME");
                         }
 
-                        bw.Write(MeetingId);                  // Meeting MeetingId
-                        bw.Write(i);                          // Chunk Index
+                        bw.Write(MeetingId);
+                        bw.Write(i);
 
                         int bytesToSend = Math.Min(bufferSize, imageData.Length - i * bufferSize);
                         byte[] chunkData = new byte[bytesToSend];
                         Buffer.BlockCopy(imageData, i * bufferSize, chunkData, 0, bytesToSend);
 
-                        bw.Write(bytesToSend);                // Chunk Size
-                        bw.Write(chunkData);                  // Chunk Data
+                        bw.Write(bytesToSend);
+                        bw.Write(chunkData);
 
                         Instance.Send(ms2.ToArray(), (int)ms2.Length, REMOTE_END_POINT);
                     }

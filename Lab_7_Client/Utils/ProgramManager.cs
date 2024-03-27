@@ -33,6 +33,5 @@ namespace Lab_7_Client.Utils
     {
         MainPage = 0,
         MeetingPage = 1,
-        ShareScreenPage = 2,
     }
 }

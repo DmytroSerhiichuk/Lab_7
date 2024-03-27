@@ -18,9 +18,9 @@ namespace Lab_7_Client.Utils
         public void Play(byte[] buffer)
         {
             _waveOut.Play();
-            _stream.SetLength(0); // Clear the stream
+            _stream.SetLength(0);
             _stream.Write(buffer, 0, buffer.Length);
-            _stream.Position = 0; // Reset stream position
+            _stream.Position = 0;
         }
 
         public void Stop()
