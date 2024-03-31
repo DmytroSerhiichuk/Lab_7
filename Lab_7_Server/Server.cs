@@ -15,7 +15,7 @@ namespace Lab_7_Server
 
         static Server()
         {
-            Instance = new UdpServer(IPAddress.Parse("127.0.0.1"), 3000);
+            Instance = new UdpServer(IPAddress.Parse("192.168.31.82"), 3000);
             Meetings = new List<MeetingData>();
         }
 
@@ -100,6 +100,8 @@ namespace Lab_7_Server
                         {
                             bw.Write("CONNECTED");
                             bw.Write(meeting.Id);
+                            bw.Write(clientEP.Address.GetAddressBytes());
+                            bw.Write(clientEP.Port);
 
                             await Instance.SendAsync(response_ms.ToArray(), clientEP);
                         }
@@ -120,6 +122,8 @@ namespace Lab_7_Server
                             {
                                 bw.Write("CONNECTED");
                                 bw.Write(meeting.Id);
+                                bw.Write(clientEP.Address.GetAddressBytes());
+                                bw.Write(clientEP.Port);
 
                                 await Instance.SendAsync(response_ms.ToArray(), clientEP);
                             }

@@ -13,15 +13,23 @@ namespace Lab_7_Client
         private Page _currentPage;
         public MainWindow()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
 
-            MyFrame.Navigate(new MainPage());
+                MyFrame.Navigate(new MainPage());
 
-            ProgramManager.Instance.Navigated += OnNavigated;
-            ProgramManager.Instance.ShareStarted += OnShareStarted;
-            ProgramManager.Instance.ShareFinished += OnShareFinished;
+                ProgramManager.Instance.Navigated += OnNavigated;
+                ProgramManager.Instance.ShareStarted += OnShareStarted;
+                ProgramManager.Instance.ShareFinished += OnShareFinished;
 
-            Closed += OnClose;
+                Closed += OnClose;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "FATAL ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(0);
+            }
         }
 
         private void OnShareStarted(MeetingPage page)

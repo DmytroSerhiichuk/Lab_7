@@ -25,33 +25,25 @@ namespace Lab_7_Client
         public static event Action<string, long, string, string, string>? FileUploaded;
         public static event Action<string, byte[]>? FilePartDownloaded;
 
-
-        public static readonly string ScheduleFile = ".\\.schedule.txt";
-
-        public static readonly IPEndPoint REMOTE_END_POINT;
-        public static UdpClient Instance { get; private set; }
-        public static string LocalName { get; private set; }
-        public static readonly IPEndPoint LocalIpEndPoint;
         private static long _serverLastPong;
+        private static readonly string ScheduleFile = ".\\.schedule.txt";
+        public static readonly IPEndPoint REMOTE_END_POINT;
+
+        public static string LocalName { get; private set; }
+
+        public static UdpClient Instance { get; private set; }
+        public static IPEndPoint LocalIpEndPoint { get; private set; }
 
         public static long MeetingId { get; private set; }
         public static List<MeetingParticipant> Participants { get; private set; }
 
         static Client()
         {
-            if (!File.Exists(ScheduleFile))
-            {
-                File.Create(ScheduleFile);
-            }
+            if (!File.Exists(ScheduleFile)) File.Create(ScheduleFile);
+
+            REMOTE_END_POINT = new IPEndPoint(IPAddress.Parse("192.168.31.82"), 3000);
 
             Instance = new UdpClient();
-            REMOTE_END_POINT = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 3000);
-
-            Instance.Send(new byte[0], 0, REMOTE_END_POINT);
-
-            var port = ((IPEndPoint)Instance.Client.LocalEndPoint).Port;
-            LocalIpEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), port);
-            Instance = new UdpClient(LocalIpEndPoint);
 
             Task.Run(() => ListenServer());
 
@@ -106,6 +98,10 @@ namespace Lab_7_Client
                         if (method == "CONNECTED")
                         {
                             MeetingId = br.ReadInt64();
+                            var address = br.ReadBytes(sizeof(int));
+                            var port = br.ReadInt32();
+
+                            LocalIpEndPoint = new IPEndPoint(new IPAddress(address), port);
 
                             Participants = new List<MeetingParticipant>() { new MeetingParticipant(LocalName, LocalIpEndPoint) };
 

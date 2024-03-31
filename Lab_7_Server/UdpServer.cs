@@ -93,8 +93,6 @@ namespace Lab_7_Server
         {
             while(!token.IsCancellationRequested)
             {
-                await Task.Delay(60000);
-
                 for (var i = 0; i < _udpClients.Count; i++)
                 {
                     var time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -104,6 +102,8 @@ namespace Lab_7_Server
                         i--;
                     }
                 }
+
+                await Task.Delay(21000);
             }
         }
     }

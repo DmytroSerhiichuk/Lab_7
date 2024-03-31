@@ -54,7 +54,7 @@ namespace Lab_7_Client.Pages
 
             ChatBorder.Child = new MeetingChat();
 
-            MyTextBox.Text = $"Meeting ID: {Client.MeetingId}";
+            MyTextBox.Text = $"Meeting ID: {Client.MeetingId}\t|\tLocal IP: {Client.LocalIpEndPoint}";
 
             ParticipantsContainers = new List<MeetingParticipantContainer>();
 
